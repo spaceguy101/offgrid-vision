@@ -1,4 +1,7 @@
 import { Buffer } from 'node:buffer';
+import { createHash } from 'node:crypto';
+import { readdir, stat } from 'node:fs/promises';
+import path from 'node:path';
 
 export type ImageFormat = 'png' | 'jpeg' | 'webp' | 'gif' | 'bmp' | 'tiff';
 
@@ -122,4 +125,54 @@ export function readDimensions(buf: Buffer, format: ImageFormat): Dimensions | n
   } catch {
     return null;
   }
+}
+
+export function sha256(buf: Buffer): string {
+  return createHash('sha256').update(buf).digest('hex');
+}
+
+export interface DiscoverOptions {
+  recursive: boolean;
+}
+
+async function walkDirectory(dir: string, recursive: boolean, out: Set<string>): Promise<void> {
+  const entries = await readdir(dir, { withFileTypes: true });
+  for (const entry of entries) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      // Skip dot-directories: node_modules, .git, and friends are never image sources.
+      if (recursive && !entry.name.startsWith('.')) {
+        await walkDirectory(full, recursive, out);
+      }
+      continue;
+    }
+    if (!entry.isFile()) continue;
+    if (SUPPORTED_EXTENSIONS.has(path.extname(entry.name).toLowerCase())) {
+      out.add(full);
+    }
+  }
+}
+
+/**
+ * Expand caller-supplied paths into a concrete file list.
+ *
+ * Directories are walked and filtered by extension. Files named explicitly are
+ * always kept, even with an unknown extension, so the caller can sniff them and
+ * emit a structured UNSUPPORTED_FORMAT result rather than silently dropping them.
+ */
+export async function discoverFiles(
+  inputPaths: string[],
+  opts: DiscoverOptions,
+): Promise<string[]> {
+  const found = new Set<string>();
+  for (const input of inputPaths) {
+    const absolute = path.resolve(input);
+    const stats = await stat(absolute);
+    if (stats.isDirectory()) {
+      await walkDirectory(absolute, opts.recursive, found);
+    } else {
+      found.add(absolute);
+    }
+  }
+  return [...found].sort();
 }
