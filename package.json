@@ -1,0 +1,37 @@
+{
+  "name": "offgrid-vision",
+  "version": "0.1.0",
+  "description": "Analyze images locally with Ollama instead of spending cloud multimodal tokens.",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "offgrid-vision": "dist/cli.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "ollama",
+    "image-analysis",
+    "ocr",
+    "local-llm",
+    "agent-skill",
+    "cli"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^20.16.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  }
+}
