@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { Buffer } from 'node:buffer';
 import { sniffFormat, readDimensions, SUPPORTED_EXTENSIONS } from '../src/media.js';
 import {
-  pngFixture, jpegFixture, gifFixture, bmpFixture,
-  webpVp8Fixture, webpVp8xFixture, tiffFixture, textFixture,
+  pngFixture, jpegFixture, gifFixture, bmpFixture, bmpOs2Fixture,
+  webpVp8Fixture, webpVp8xFixture, webpVp8lFixture, tiffFixture, textFixture,
 } from './helpers/fixtures.js';
 
 describe('sniffFormat', () => {
@@ -55,6 +55,14 @@ describe('readDimensions', () => {
   it('reads both WebP chunk layouts', () => {
     expect(readDimensions(webpVp8Fixture(200, 150), 'webp')).toEqual({ width: 200, height: 150 });
     expect(readDimensions(webpVp8xFixture(1024, 768), 'webp')).toEqual({ width: 1024, height: 768 });
+  });
+
+  it('reads lossless WebP (VP8L) dimensions from the packed bitstream', () => {
+    expect(readDimensions(webpVp8lFixture(6000, 1337), 'webp')).toEqual({ width: 6000, height: 1337 });
+  });
+
+  it('returns null for a legacy OS/2 BMP (BITMAPCOREHEADER) instead of misreading it', () => {
+    expect(readDimensions(bmpOs2Fixture(320, 200), 'bmp')).toBeNull();
   });
 
   it('returns null for TIFF, which we do not parse', () => {

@@ -81,6 +81,9 @@ function gifDimensions(buf: Buffer): Dimensions | null {
 /** BMP height is signed: negative means the rows are stored top-down. */
 function bmpDimensions(buf: Buffer): Dimensions | null {
   if (buf.length < 26) return null;
+  // Only BITMAPINFOHEADER (40) and its supersets put signed 32-bit dimensions
+  // at offsets 18/22. The OS/2 BITMAPCOREHEADER (12) uses a different layout.
+  if (buf.readUInt32LE(14) < 40) return null;
   return { width: Math.abs(buf.readInt32LE(18)), height: Math.abs(buf.readInt32LE(22)) };
 }
 

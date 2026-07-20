@@ -52,6 +52,21 @@ export function bmpFixture(width = 32, height = 16): Buffer {
   return buf;
 }
 
+/**
+ * Legacy OS/2 BMP: 'BM' signature with a 12-byte BITMAPCOREHEADER (header-size
+ * field at offset 14 is 12, not 40). Width and height are *unsigned 16-bit*
+ * fields at offsets 18 and 20 - a completely different layout from the
+ * Windows BITMAPINFOHEADER that bmpFixture() produces.
+ */
+export function bmpOs2Fixture(width = 320, height = 200): Buffer {
+  const buf = Buffer.alloc(26);
+  buf.write('BM', 0, 'ascii');
+  buf.writeUInt32LE(12, 14);
+  buf.writeUInt16LE(width, 18);
+  buf.writeUInt16LE(height, 20);
+  return buf;
+}
+
 /** Lossy WebP: RIFF container wrapping a VP8 chunk. */
 export function webpVp8Fixture(width = 200, height = 150): Buffer {
   const buf = Buffer.alloc(30);
@@ -76,6 +91,24 @@ export function webpVp8xFixture(width = 1024, height = 768): Buffer {
   buf.writeUInt32LE(10, 16);
   buf.writeUIntLE(width - 1, 24, 3);
   buf.writeUIntLE(height - 1, 27, 3);
+  return buf;
+}
+
+/**
+ * Lossless WebP: RIFF container wrapping a VP8L chunk. Payload starts with a
+ * signature byte (0x2f) followed by a 32-bit little-endian word where bits
+ * 0-13 hold (width - 1) and bits 14-27 hold (height - 1).
+ */
+export function webpVp8lFixture(width = 6000, height = 1337): Buffer {
+  const buf = Buffer.alloc(25);
+  buf.write('RIFF', 0, 'ascii');
+  buf.writeUInt32LE(17, 4);
+  buf.write('WEBP', 8, 'ascii');
+  buf.write('VP8L', 12, 'ascii');
+  buf.writeUInt32LE(5, 16);
+  buf.writeUInt8(0x2f, 20);
+  const bits = ((width - 1) & 0x3fff) | (((height - 1) & 0x3fff) << 14);
+  buf.writeUInt32LE(bits >>> 0, 21);
   return buf;
 }
 
