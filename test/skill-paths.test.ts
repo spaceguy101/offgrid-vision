@@ -79,6 +79,17 @@ describe('resolveTarget', () => {
     expect(target).toMatchObject({ harness: 'claude-code', scope: 'user', detected: true });
   });
 
+  it('still detects scope when harness is explicit but scope is not', () => {
+    const target = resolveTarget({ harness: 'claude-code', homedir: home, cwd: project, isTTY: false });
+    expect(target).toMatchObject({ harness: 'claude-code', scope: 'project', detected: true });
+    expect(target.dir).toBe(path.join(project, '.claude', 'skills', SKILL_NAME));
+  });
+
+  it('honors an explicit scope over detection even with harness present', () => {
+    const target = resolveTarget({ harness: 'claude-code', scope: 'user', homedir: home, cwd: project, isTTY: false });
+    expect(target).toMatchObject({ harness: 'claude-code', scope: 'user', detected: false });
+  });
+
   it('defaults to claude-code user scope in a non-TTY with nothing detected', () => {
     const target = resolveTarget({ homedir: bare, cwd: bare, isTTY: false });
     expect(target).toMatchObject({ harness: 'claude-code', scope: 'user' });

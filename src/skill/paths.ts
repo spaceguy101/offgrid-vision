@@ -65,7 +65,7 @@ export function resolveTarget(input: TargetInput): SkillTarget {
     };
   }
 
-  const explicit = harness !== undefined || scope !== undefined;
+  const scopeExplicit = scope !== undefined;
   let effectiveScope: Scope;
   let detected = false;
 
@@ -73,10 +73,10 @@ export function resolveTarget(input: TargetInput): SkillTarget {
     effectiveScope = scope;
   } else if (existsSync(path.join(input.cwd, '.claude'))) {
     effectiveScope = 'project';
-    detected = !explicit;
+    detected = !scopeExplicit;
   } else if (existsSync(path.join(input.homedir, '.claude'))) {
     effectiveScope = 'user';
-    detected = !explicit;
+    detected = !scopeExplicit;
   } else {
     effectiveScope = 'user';
   }
