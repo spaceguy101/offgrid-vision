@@ -165,4 +165,36 @@ describe('analyzeFile', () => {
     expect(result.error?.code).toBe('BACKEND_UNAVAILABLE');
     expect(result.analysis).toBeNull();
   });
+
+  it('reports TIMEOUT (not PARSE_ERROR) when the repair call itself stalls', async () => {
+    mock = await startMockOllama({
+      chatReplies: ['nope'],
+      // First call answers immediately; only the repair call stalls.
+      chatDelayMs: [0, 300],
+    });
+    const result = await analyzeFile(pngPath, {
+      ...baseOpts,
+      backend: backendFor(mock.url),
+      timeoutMs: 50,
+    });
+
+    expect(result.error?.code).toBe('TIMEOUT');
+    expect(result.analysis).toBeNull();
+    expect(result.metadata?.format).toBe('png');
+    expect(mock.requests.filter((r) => r.path === '/api/chat')).toHaveLength(2);
+  });
+
+  it('reports BACKEND_UNAVAILABLE (not PARSE_ERROR) when the repair call gets an HTTP error', async () => {
+    mock = await startMockOllama({
+      chatReplies: ['nope'],
+      // First call succeeds normally; only the repair call fails at the HTTP level.
+      chatStatus: [200, 500],
+    });
+    const result = await analyzeFile(pngPath, { ...baseOpts, backend: backendFor(mock.url) });
+
+    expect(result.error?.code).toBe('BACKEND_UNAVAILABLE');
+    expect(result.analysis).toBeNull();
+    expect(result.metadata?.format).toBe('png');
+    expect(mock.requests.filter((r) => r.path === '/api/chat')).toHaveLength(2);
+  });
 });

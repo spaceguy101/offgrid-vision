@@ -23,6 +23,26 @@ function errorMessage(cause: unknown): string {
 }
 
 /**
+ * Identity-based mapping shared by both chat() catches: TimeoutError and
+ * BackendUnavailableError map to their dedicated codes; anything else falls
+ * through to IO_ERROR. Not used for the repair call's "reply came back but
+ * didn't parse" case — that's a distinct PARSE_ERROR path, not a transport
+ * failure, so it stays out of this helper.
+ */
+function backendErrorResult(
+  cause: unknown,
+  timeoutMs: number,
+): { code: 'TIMEOUT' | 'BACKEND_UNAVAILABLE' | 'IO_ERROR'; message: string } {
+  if (cause instanceof TimeoutError) {
+    return { code: 'TIMEOUT', message: `Analysis exceeded ${timeoutMs} ms` };
+  }
+  if (cause instanceof BackendUnavailableError) {
+    return { code: 'BACKEND_UNAVAILABLE', message: cause.message };
+  }
+  return { code: 'IO_ERROR', message: errorMessage(cause) };
+}
+
+/**
  * Analyze one file end to end.
  *
  * Never throws: every failure mode is reported as a structured `error` on the
@@ -88,25 +108,7 @@ export async function analyzeFile(
   try {
     reply = await opts.backend.chat(messages, chatOptions);
   } catch (cause) {
-    if (cause instanceof TimeoutError) {
-      return envelope({
-        analysis: null,
-        metadata,
-        error: { code: 'TIMEOUT', message: `Analysis exceeded ${opts.timeoutMs} ms` },
-      });
-    }
-    if (cause instanceof BackendUnavailableError) {
-      return envelope({
-        analysis: null,
-        metadata,
-        error: { code: 'BACKEND_UNAVAILABLE', message: cause.message },
-      });
-    }
-    return envelope({
-      analysis: null,
-      metadata,
-      error: { code: 'IO_ERROR', message: errorMessage(cause) },
-    });
+    return envelope({ analysis: null, metadata, error: backendErrorResult(cause, opts.timeoutMs) });
   }
 
   const parsed = parseAnalysis(reply);
@@ -119,15 +121,13 @@ export async function analyzeFile(
       [...messages, { role: 'assistant', content: reply }, { role: 'user', content: REPAIR_PROMPT }],
       chatOptions,
     );
-  } catch {
-    return envelope({
-      analysis: unparsedAnalysis(reply),
-      metadata,
-      error: {
-        code: 'PARSE_ERROR',
-        message: 'Model did not return valid JSON and the repair attempt failed',
-      },
-    });
+  } catch (cause) {
+    // The repair chat() call itself failed (transport failure), as opposed to
+    // returning a reply that also didn't parse — map by identity exactly like
+    // the first call, not as a blanket PARSE_ERROR. There is no repair text
+    // to preserve here (the *original* unparseable reply isn't the repair's
+    // output), so analysis stays null, matching the first-call failure branches.
+    return envelope({ analysis: null, metadata, error: backendErrorResult(cause, opts.timeoutMs) });
   }
 
   const reparsed = parseAnalysis(repaired);

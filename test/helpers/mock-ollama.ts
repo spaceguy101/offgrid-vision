@@ -7,10 +7,20 @@ export interface MockOllamaOptions {
   models?: string[];
   /** Successive /api/chat reply bodies. The last one repeats once exhausted. */
   chatReplies?: string[];
-  /** Milliseconds to stall before answering /api/chat, to exercise timeouts. */
-  chatDelayMs?: number;
-  /** HTTP status for /api/chat. Defaults to 200. */
-  chatStatus?: number;
+  /**
+   * Milliseconds to stall before answering /api/chat, to exercise timeouts.
+   * A single number applies to every call; an array applies per call by
+   * index (0-based), repeating the last entry once exhausted — mirrors
+   * chatReplies, so e.g. [0, 300] keeps the first call fast and stalls only
+   * the second (the repair round-trip).
+   */
+  chatDelayMs?: number | number[];
+  /**
+   * HTTP status for /api/chat. Defaults to 200. A single number applies to
+   * every call; an array applies per call by index, repeating the last
+   * entry once exhausted (mirrors chatReplies/chatDelayMs).
+   */
+  chatStatus?: number | number[];
   /** Return malformed HTTP-level JSON from /api/chat. */
   malformedEnvelope?: boolean;
   /**
@@ -27,6 +37,20 @@ export interface MockOllama {
   /** Every request path the server received, in order. */
   requests: Array<{ path: string; body: unknown }>;
   close(): Promise<void>;
+}
+
+/**
+ * Resolves a per-call option that may be a single value (applies to every
+ * call) or an array indexed by call number, repeating the last entry once
+ * exhausted — same convention as chatReplies.
+ */
+function perCall<T>(opt: T | T[] | undefined, index: number, fallback: T): T {
+  if (opt === undefined) return fallback;
+  if (Array.isArray(opt)) {
+    if (opt.length === 0) return fallback;
+    return opt[Math.min(index, opt.length - 1)] as T;
+  }
+  return opt;
 }
 
 export async function startMockOllama(opts: MockOllamaOptions = {}): Promise<MockOllama> {
@@ -55,8 +79,12 @@ export async function startMockOllama(opts: MockOllamaOptions = {}): Promise<Moc
       }
 
       if (req.url === '/api/chat') {
-        const reply = chatReplies[Math.min(chatCount, chatReplies.length - 1)] ?? '';
+        // Capture this call's index before incrementing so per-call options
+        // (chatReplies/chatDelayMs/chatStatus) all line up on the same call,
+        // regardless of how long a prior call's timers took to fire.
+        const callIndex = chatCount;
         chatCount += 1;
+        const reply = chatReplies[Math.min(callIndex, chatReplies.length - 1)] ?? '';
         const writeBody = (): void => {
           if (opts.malformedEnvelope) {
             res.end('this is not json at all');
@@ -69,7 +97,7 @@ export async function startMockOllama(opts: MockOllamaOptions = {}): Promise<Moc
           }));
         };
         const send = (): void => {
-          const status = opts.chatStatus ?? 200;
+          const status = perCall(opts.chatStatus, callIndex, 200);
           res.writeHead(status, { 'content-type': 'application/json' });
           if (opts.bodyDelayMs) {
             // Force headers onto the wire now, before stalling the body —
@@ -80,7 +108,8 @@ export async function startMockOllama(opts: MockOllamaOptions = {}): Promise<Moc
             writeBody();
           }
         };
-        if (opts.chatDelayMs) setTimeout(send, opts.chatDelayMs).unref();
+        const delayMs = perCall(opts.chatDelayMs, callIndex, 0);
+        if (delayMs) setTimeout(send, delayMs).unref();
         else send();
         return;
       }
