@@ -3381,7 +3381,9 @@ export function resolveTarget(input: TargetInput): SkillTarget {
     };
   }
 
-  const explicit = harness !== undefined || scope !== undefined;
+  // Only the scope is ever auto-discovered — claude-code is just the non-generic
+  // default, never "detected" — so a supplied harness must not suppress detection.
+  const scopeExplicit = scope !== undefined;
   let effectiveScope: Scope;
   let detected = false;
 
@@ -3389,10 +3391,10 @@ export function resolveTarget(input: TargetInput): SkillTarget {
     effectiveScope = scope;
   } else if (existsSync(path.join(input.cwd, '.claude'))) {
     effectiveScope = 'project';
-    detected = !explicit;
+    detected = !scopeExplicit;
   } else if (existsSync(path.join(input.homedir, '.claude'))) {
     effectiveScope = 'user';
-    detected = !explicit;
+    detected = !scopeExplicit;
   } else {
     effectiveScope = 'user';
   }
