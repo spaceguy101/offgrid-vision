@@ -3659,7 +3659,7 @@ readable, and say that the output was unstructured.
 ## Fallback rule
 
 If the tool is unavailable — Ollama not installed, model missing, repeated
-errors — you may fall back to your own vision capability, but **tell the user**
+errors — you may fall back to your own vision capability, but **inform the user**
 you did so and pass along the remediation from \`doctor\`. Never fail the user's
 request just because the local path did not work, and never silently burn
 multimodal tokens when they installed this skill specifically to avoid that.
