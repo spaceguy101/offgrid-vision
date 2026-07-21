@@ -122,6 +122,10 @@ export async function runUninstallSkillCommand(argv: string[], io: CommandIO): P
     return handleUsageError(cause, io, UNINSTALL_SKILL_HELP);
   }
 
+  if (target.detected) {
+    io.stdout(`Detected harness "${target.harness}" with ${target.scope} scope.\n`);
+  }
+
   try {
     const result = await uninstallSkill(target.dir);
     io.stdout(

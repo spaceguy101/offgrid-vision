@@ -39,6 +39,25 @@ describe('resolveConfig', () => {
     expect(resolveConfig({ host: 'localhost:11434/' }, {}).host).toBe('http://localhost:11434');
   });
 
+  it('treats an empty OFFGRID_MODEL as unset and falls back to the default', () => {
+    expect(resolveConfig({}, { OFFGRID_MODEL: '' }).model).toBe('gemma3:12b');
+    expect(resolveConfig({}, { OFFGRID_MODEL: '   ' }).model).toBe('gemma3:12b');
+  });
+
+  it('treats an empty OLLAMA_HOST as unset and falls back to the default', () => {
+    expect(resolveConfig({}, { OLLAMA_HOST: '' }).host).toBe('http://localhost:11434');
+    expect(resolveConfig({}, { OLLAMA_HOST: '   ' }).host).toBe('http://localhost:11434');
+  });
+
+  it('still lets a flag override a set env var when the env var is empty-checked', () => {
+    const cfg = resolveConfig(
+      { model: 'llava:13b', host: 'http://192.168.1.9:1234' },
+      { OFFGRID_MODEL: 'gemma3:4b', OLLAMA_HOST: 'http://10.0.0.5:11434' },
+    );
+    expect(cfg.model).toBe('llava:13b');
+    expect(cfg.host).toBe('http://192.168.1.9:1234');
+  });
+
   it('falls back to the default timeout for garbage values', () => {
     expect(resolveConfig({}, { OFFGRID_TIMEOUT: 'soon' }).timeoutMs).toBe(120000);
     expect(resolveConfig({}, { OFFGRID_TIMEOUT: '-5' }).timeoutMs).toBe(120000);

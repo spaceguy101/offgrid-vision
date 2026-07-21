@@ -159,34 +159,46 @@ export async function runAnalyzeCommand(argv: string[], io: CommandIO): Promise<
     const message = cause instanceof Error ? cause.message : String(cause);
     const remediation = cause instanceof BackendUnavailableError ? cause.remediation : '';
     if (args.json) {
-      io.stdout(`${JSON.stringify({
-        results: [],
-        error: { code: 'BACKEND_UNAVAILABLE', message, remediation },
-      }, null, 2)}\n`);
+      const result: AnalysisResult = {
+        file: args.paths.join(', '),
+        model: config.model,
+        duration_ms: 0,
+        analysis: null,
+        metadata: null,
+        error: {
+          code: 'BACKEND_UNAVAILABLE',
+          message: remediation ? `${message}\n\n${remediation}` : message,
+        },
+      };
+      io.stdout(`${JSON.stringify(result, null, 2)}\n`);
     }
     io.stderr(`${message}\n\n${remediation}\n`);
     return EXIT.BACKEND;
   }
 
-  let files: string[];
-  try {
-    files = await discoverFiles(args.paths, { recursive: args.recursive });
-  } catch (cause) {
-    // A bad path is a per-file IO error, not a crash — report it in the contract shape.
-    const result: AnalysisResult = {
-      file: args.paths.join(', '),
-      model: config.model,
-      duration_ms: 0,
-      analysis: null,
-      metadata: null,
-      error: { code: 'IO_ERROR', message: cause instanceof Error ? cause.message : String(cause) },
-    };
-    if (args.json) io.stdout(`${JSON.stringify(result, null, 2)}\n`);
-    else io.stdout(renderHuman([result]));
-    return EXIT.RUNTIME;
+  // Discover each input path independently so one bad path (e.g. a typo) does
+  // not collapse the entire batch — a per-path stat failure becomes a single
+  // IO_ERROR envelope for that path while every other path is still analyzed.
+  const discovered = new Set<string>();
+  const discoveryErrors: AnalysisResult[] = [];
+  for (const input of args.paths) {
+    try {
+      const found = await discoverFiles([input], { recursive: args.recursive });
+      for (const file of found) discovered.add(file);
+    } catch (cause) {
+      discoveryErrors.push({
+        file: input,
+        model: config.model,
+        duration_ms: 0,
+        analysis: null,
+        metadata: null,
+        error: { code: 'IO_ERROR', message: cause instanceof Error ? cause.message : String(cause) },
+      });
+    }
   }
+  const files = [...discovered].sort();
 
-  if (files.length === 0) {
+  if (files.length === 0 && discoveryErrors.length === 0) {
     io.stderr('No supported image files were found.\n');
     if (args.json) io.stdout('[]\n');
     return EXIT.SUCCESS;
@@ -194,7 +206,7 @@ export async function runAnalyzeCommand(argv: string[], io: CommandIO): Promise<
 
   const startedAt = Date.now();
   let completed = 0;
-  const results = await mapWithConcurrency(files, args.concurrency, async (file) => {
+  const analyzed = await mapWithConcurrency(files, args.concurrency, async (file) => {
     io.stderr(`[${++completed}/${files.length}] analyzing ${file}\n`);
     return analyzeFile(file, {
       backend,
@@ -205,6 +217,10 @@ export async function runAnalyzeCommand(argv: string[], io: CommandIO): Promise<
     });
   });
   const durationMs = Date.now() - startedAt;
+  // Discovery-error envelopes (bad input paths) are appended after the
+  // analyzed results; both orderings are deterministic, this one keeps the
+  // successfully-discovered, sorted file list contiguous at the front.
+  const results = [...analyzed, ...discoveryErrors];
 
   if (args.out) {
     const report: RunReport = {

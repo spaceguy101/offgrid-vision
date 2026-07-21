@@ -133,7 +133,7 @@ multiple paths yield an array of them, in sorted path order.
 
 \`\`\`json
 {
-  "file": "screenshots/error.png",
+  "file": "/home/user/screenshots/error.png",
   "model": "gemma3:12b",
   "duration_ms": 8421,
   "analysis": {

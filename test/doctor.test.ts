@@ -166,4 +166,14 @@ describe('runDoctorCommand', () => {
     expect(exitCode2).toBe(EXIT.SUCCESS);
     expect(io2.stdoutLines.join('')).toContain('Usage: offgrid-vision doctor');
   });
+
+  it('an unknown flag is a usage error: exits 2, stdout stays empty', async () => {
+    const io = fakeIO();
+
+    const exitCode = await runDoctorCommand(['--bogus-flag'], io);
+
+    expect(exitCode).toBe(EXIT.USAGE);
+    expect(io.stdoutLines.join('')).toBe('');
+    expect(io.stderrLines.join('').length).toBeGreaterThan(0);
+  });
 });

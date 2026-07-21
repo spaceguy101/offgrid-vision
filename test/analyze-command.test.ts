@@ -213,15 +213,23 @@ describe('runAnalyzeCommand', () => {
     expect(cap.err()).toContain('ollama pull gemma3:12b');
   });
 
-  it('embeds the preflight failure in stdout JSON when --json is set', async () => {
+  it('emits a single AnalysisResult envelope on stdout when preflight fails with --json', async () => {
     mock = await startMockOllama({ models: ['llama3:8b'] });
     const cap = makeIO();
     const code = await runAnalyzeCommand([path.join(root, 'a.png'), '--json', '--host', mock.url], cap.io);
 
     expect(code).toBe(3);
-    const payload = JSON.parse(cap.out()) as { error: { code: string; message: string; remediation: string } };
-    expect(payload.error.code).toBe('BACKEND_UNAVAILABLE');
-    expect(payload.error.remediation).toContain('ollama pull gemma3:12b');
+    const payload = JSON.parse(cap.out()) as {
+      file: string;
+      analysis: unknown;
+      error: { code: string; message: string } | null;
+    };
+    expect(Array.isArray(payload)).toBe(false);
+    expect(payload.analysis).toBeNull();
+    expect(payload.error?.code).toBe('BACKEND_UNAVAILABLE');
+    expect(payload.error?.message).toContain('ollama pull gemma3:12b');
+    // Remediation is still printed to stderr in both json and non-json modes.
+    expect(cap.err()).toContain('ollama pull gemma3:12b');
   });
 
   it('reads configuration from env vars', async () => {
@@ -248,5 +256,24 @@ describe('runAnalyzeCommand', () => {
     );
     expect(code).toBe(1);
     expect((JSON.parse(cap.out()) as { error: { code: string } }).error.code).toBe('IO_ERROR');
+  });
+
+  it('continues analyzing valid paths when another input path is missing', async () => {
+    mock = await startMockOllama();
+    const cap = makeIO();
+    const code = await runAnalyzeCommand(
+      [path.join(root, 'a.png'), path.join(root, 'ghost.png'), '--json', '--host', mock.url],
+      cap.io,
+    );
+
+    expect(code).toBe(1);
+    const payload = JSON.parse(cap.out()) as Array<{ file: string; error: { code: string } | null }>;
+    expect(payload).toHaveLength(2);
+
+    const ok = payload.find((r) => r.file === path.join(root, 'a.png'));
+    expect(ok?.error).toBeNull();
+
+    const missing = payload.find((r) => r.file.endsWith('ghost.png'));
+    expect(missing?.error?.code).toBe('IO_ERROR');
   });
 });

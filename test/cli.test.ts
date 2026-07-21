@@ -64,14 +64,13 @@ describe('run', () => {
     expect(cap.err()).toContain('--concurrency');
   });
 
-  it('maps an unexpected synchronous throw from a command to exit code 1', async () => {
-    // runDoctorCommand's parseArgs call is not wrapped in try/catch (unlike
-    // analyze/install-skill), so an unrecognized flag throws synchronously out
-    // of the handler and lands in run()'s top-level catch, unconverted.
+  it('treats an unknown doctor flag as a usage error and exits code 2', async () => {
+    // doctor's parseArgs is now wrapped like analyze/install-skill, so an
+    // unrecognized flag is a usage error (exit 2), not an unhandled throw.
     const cap = makeIO();
     const code = await run(['doctor', '--bogus-flag'], cap.io);
-    expect(code).toBe(1);
-    expect(cap.err()).toContain('offgrid-vision:');
-    expect(cap.err()).toContain('--bogus-flag');
+    expect(code).toBe(2);
+    expect(cap.err().length).toBeGreaterThan(0);
+    expect(cap.out()).toBe('');
   });
 });

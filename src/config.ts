@@ -26,15 +26,21 @@ function positiveInt(value: string | undefined): number | undefined {
   return Math.floor(parsed);
 }
 
+/** An empty or whitespace-only env value is treated the same as unset. */
+function nonEmpty(value: string | undefined): string | undefined {
+  if (value === undefined || value.trim() === '') return undefined;
+  return value;
+}
+
 export function resolveConfig(flags: ConfigFlags, env: NodeJS.ProcessEnv): ResolvedConfig {
-  const host = flags.host ?? env.OLLAMA_HOST ?? DEFAULT_HOST;
+  const host = flags.host ?? nonEmpty(env.OLLAMA_HOST) ?? DEFAULT_HOST;
   const timeoutMs =
     (flags.timeout !== undefined && flags.timeout > 0 ? Math.floor(flags.timeout) : undefined) ??
     positiveInt(env.OFFGRID_TIMEOUT) ??
     DEFAULT_TIMEOUT_MS;
 
   return {
-    model: flags.model ?? env.OFFGRID_MODEL ?? DEFAULT_MODEL,
+    model: flags.model ?? nonEmpty(env.OFFGRID_MODEL) ?? DEFAULT_MODEL,
     host: normalizeHost(host),
     timeoutMs,
   };

@@ -139,4 +139,16 @@ describe('runUninstallSkillCommand', () => {
     expect(code).toBe(0);
     expect(cap.out().toLowerCase()).toMatch(/not installed|nothing/);
   });
+
+  it('prints the "Detected" line before removing an auto-detected skill', async () => {
+    await mkdir(path.join(project, '.claude'), { recursive: true });
+    await runInstallSkillCommand([], makeIO(project).io);
+
+    const cap = makeIO(project);
+    const code = await runUninstallSkillCommand([], cap.io);
+
+    expect(code).toBe(0);
+    expect(cap.out().toLowerCase()).toContain('detected');
+    expect(existsSync(path.join(project, '.claude', 'skills', 'offgrid-vision'))).toBe(false);
+  });
 });

@@ -68,6 +68,9 @@ export async function run(argv: string[], io: CommandIO): Promise<number> {
   try {
     return await handler(rest, io);
   } catch (cause) {
+    // Defensive guard: every command handler now converts its own usage errors
+    // (exit 2) and expected failures internally, so this catch exists only for
+    // unexpected throws from a handler and is not expected to be hit in tests.
     io.stderr(`offgrid-vision: ${cause instanceof Error ? cause.message : String(cause)}\n`);
     return EXIT.RUNTIME;
   }

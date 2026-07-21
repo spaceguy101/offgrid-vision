@@ -131,16 +131,22 @@ Options:
 Exit codes: 0 healthy, 3 backend unavailable or model missing.`;
 
 export async function runDoctorCommand(argv: string[], io: CommandIO): Promise<number> {
-  const { values } = parseArgs({
-    args: argv,
-    options: {
-      model: { type: 'string' },
-      host: { type: 'string' },
-      json: { type: 'boolean', default: false },
-      help: { type: 'boolean', short: 'h', default: false },
-    },
-    allowPositionals: false,
-  });
+  let values: { model?: string; host?: string; json: boolean; help: boolean };
+  try {
+    ({ values } = parseArgs({
+      args: argv,
+      options: {
+        model: { type: 'string' },
+        host: { type: 'string' },
+        json: { type: 'boolean', default: false },
+        help: { type: 'boolean', short: 'h', default: false },
+      },
+      allowPositionals: false,
+    }));
+  } catch (cause) {
+    io.stderr(`${cause instanceof Error ? cause.message : String(cause)}\n\n${DOCTOR_HELP}\n`);
+    return EXIT.USAGE;
+  }
 
   if (values.help) {
     io.stdout(`${DOCTOR_HELP}\n`);

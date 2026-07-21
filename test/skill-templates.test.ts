@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import path from 'node:path';
 import { renderSkillMd, renderSchemaMd } from '../src/skill/templates.js';
 
 describe('renderSkillMd', () => {
@@ -84,5 +85,11 @@ describe('renderSchemaMd', () => {
     const example = /```json\n([\s\S]*?)\n```/.exec(schema)?.[1];
     expect(example).toBeDefined();
     expect(() => JSON.parse(example as string)).not.toThrow();
+  });
+
+  it('shows an absolute file path in the example, matching the documented field type', () => {
+    const example = /```json\n([\s\S]*?)\n```/.exec(schema)?.[1] as string;
+    const parsed = JSON.parse(example) as { file: string };
+    expect(path.isAbsolute(parsed.file)).toBe(true);
   });
 });
