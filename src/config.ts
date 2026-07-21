@@ -1,4 +1,4 @@
-export const DEFAULT_MODEL = 'gemma3:12b';
+export const DEFAULT_MODEL = 'gemma4:12b';
 export const DEFAULT_HOST = 'http://localhost:11434';
 export const DEFAULT_TIMEOUT_MS = 120000;
 

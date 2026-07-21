@@ -22,7 +22,7 @@ Global:
   -v, --version        Print the version
 
 Environment:
-  OFFGRID_MODEL        Model name          (default gemma3:12b)
+  OFFGRID_MODEL        Model name          (default gemma4:12b)
   OLLAMA_HOST          Backend host        (default http://localhost:11434)
   OFFGRID_TIMEOUT      Per-file timeout ms (default 120000)
 

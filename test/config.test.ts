@@ -4,7 +4,7 @@ import { resolveConfig, isLocalHost } from '../src/config.js';
 describe('resolveConfig', () => {
   it('uses defaults when nothing is provided', () => {
     expect(resolveConfig({}, {})).toEqual({
-      model: 'gemma3:12b',
+      model: 'gemma4:12b',
       host: 'http://localhost:11434',
       timeoutMs: 120000,
     });
@@ -40,8 +40,8 @@ describe('resolveConfig', () => {
   });
 
   it('treats an empty OFFGRID_MODEL as unset and falls back to the default', () => {
-    expect(resolveConfig({}, { OFFGRID_MODEL: '' }).model).toBe('gemma3:12b');
-    expect(resolveConfig({}, { OFFGRID_MODEL: '   ' }).model).toBe('gemma3:12b');
+    expect(resolveConfig({}, { OFFGRID_MODEL: '' }).model).toBe('gemma4:12b');
+    expect(resolveConfig({}, { OFFGRID_MODEL: '   ' }).model).toBe('gemma4:12b');
   });
 
   it('treats an empty OLLAMA_HOST as unset and falls back to the default', () => {

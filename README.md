@@ -27,8 +27,8 @@ hundred tokens of JSON.
 - A vision model pulled:
 
   ```bash
-  ollama pull gemma3:12b     # default; needs roughly 16 GB of RAM
-  ollama pull gemma3:4b      # lighter alternative for smaller machines
+  ollama pull gemma4:12b     # default; needs roughly 16 GB of RAM
+  ollama pull gemma4:4b      # lighter alternative for smaller machines
   ```
 
 Verify everything at once:
@@ -68,7 +68,7 @@ Analyze one or more images. Paths may be files or directories.
 | `--out <file>` | — | Write `{ results, summary }` JSON to a file |
 | `--mode <preset>` | `general` | `general`, `ocr`, `alt-text`, or `ui` |
 | `--prompt <text>` | — | Extra focus instruction; the schema is unchanged |
-| `--model <name>` | `gemma3:12b` | Model to use |
+| `--model <name>` | `gemma4:12b` | Model to use |
 | `--host <url>` | `http://localhost:11434` | Ollama host |
 | `--timeout <ms>` | `120000` | Per-file deadline |
 | `--concurrency <n>` | `1` | Files in flight at once, 1–4 |
@@ -113,7 +113,7 @@ This schema is a public contract; changes to it are semver-major.
 ```json
 {
   "file": "/abs/path/screenshots/error.png",
-  "model": "gemma3:12b",
+  "model": "gemma4:12b",
   "duration_ms": 8421,
   "analysis": {
     "description": "A desktop application showing a modal error dialog.",
@@ -170,7 +170,7 @@ Flags beat environment variables, which beat defaults.
 
 | Variable | Default |
 |---|---|
-| `OFFGRID_MODEL` | `gemma3:12b` |
+| `OFFGRID_MODEL` | `gemma4:12b` |
 | `OLLAMA_HOST` | `http://localhost:11434` |
 | `OFFGRID_TIMEOUT` | `120000` |
 

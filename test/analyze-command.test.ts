@@ -137,7 +137,7 @@ describe('runAnalyzeCommand', () => {
       summary: { total: number; ok: number; failed: number; model: string };
     };
     expect(report.results).toHaveLength(1);
-    expect(report.summary).toMatchObject({ total: 1, ok: 1, failed: 0, model: 'gemma3:12b' });
+    expect(report.summary).toMatchObject({ total: 1, ok: 1, failed: 0, model: 'gemma4:12b' });
     await rm(outFile, { force: true });
   });
 
@@ -210,7 +210,7 @@ describe('runAnalyzeCommand', () => {
     const code = await runAnalyzeCommand([path.join(root, 'a.png'), '--host', mock.url], cap.io);
 
     expect(code).toBe(3);
-    expect(cap.err()).toContain('ollama pull gemma3:12b');
+    expect(cap.err()).toContain('ollama pull gemma4:12b');
   });
 
   it('emits a single AnalysisResult envelope on stdout when preflight fails with --json', async () => {
@@ -227,9 +227,9 @@ describe('runAnalyzeCommand', () => {
     expect(Array.isArray(payload)).toBe(false);
     expect(payload.analysis).toBeNull();
     expect(payload.error?.code).toBe('BACKEND_UNAVAILABLE');
-    expect(payload.error?.message).toContain('ollama pull gemma3:12b');
+    expect(payload.error?.message).toContain('ollama pull gemma4:12b');
     // Remediation is still printed to stderr in both json and non-json modes.
-    expect(cap.err()).toContain('ollama pull gemma3:12b');
+    expect(cap.err()).toContain('ollama pull gemma4:12b');
   });
 
   it('reads configuration from env vars', async () => {

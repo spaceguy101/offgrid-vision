@@ -11,10 +11,10 @@ function remediationFor(host: string): string {
     'To fix this:',
     '  1. Install Ollama from https://ollama.com/download',
     '  2. Start it (the desktop app, or run `ollama serve`)',
-    '  3. Pull a vision model:  ollama pull gemma3:12b',
+    '  3. Pull a vision model:  ollama pull gemma4:12b',
     '',
     'On a machine with less than 16 GB of RAM, use the smaller model instead:',
-    '  ollama pull gemma3:4b   &&   offgrid-vision analyze <file> --model gemma3:4b',
+    '  ollama pull gemma4:4b   &&   offgrid-vision analyze <file> --model gemma4:4b',
     '',
     'If Ollama runs on another host or port, set OLLAMA_HOST or pass --host.',
   ].join('\n');

@@ -35,8 +35,8 @@ function modelRemediation(model: string, host: string, available: string[]): str
     `  ollama pull ${model}`,
     '',
     'On a machine with less than 16 GB of RAM, prefer the smaller model:',
-    '  ollama pull gemma3:4b',
-    `  offgrid-vision analyze <file> --model gemma3:4b   (or set OFFGRID_MODEL=gemma3:4b)`,
+    '  ollama pull gemma4:4b',
+    `  offgrid-vision analyze <file> --model gemma4:4b   (or set OFFGRID_MODEL=gemma4:4b)`,
     '',
     available.length
       ? `Models currently installed: ${available.join(', ')}`
@@ -123,7 +123,7 @@ export const DOCTOR_HELP = `Usage: offgrid-vision doctor [options]
 Check that this machine can run local image analysis.
 
 Options:
-  --model <name>   Model to check for       (env OFFGRID_MODEL, default gemma3:12b)
+  --model <name>   Model to check for       (env OFFGRID_MODEL, default gemma4:12b)
   --host <url>     Ollama host              (env OLLAMA_HOST, default http://localhost:11434)
   --json           Emit the report as JSON on stdout
   -h, --help       Show this help

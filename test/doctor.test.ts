@@ -55,7 +55,7 @@ describe('runChecks', () => {
     expect(report.ok).toBe(false);
     expect(report.checks.find((c) => c.name === 'Model available')?.ok).toBe(false);
     expect(report.remediation).toContain('ollama pull gemma3:12b');
-    expect(report.remediation).toContain('gemma3:4b');
+    expect(report.remediation).toContain('gemma4:4b');
   });
 
   it('matches a model whose tag is implicitly :latest', async () => {
@@ -112,7 +112,7 @@ describe('preflight', () => {
 
 describe('runDoctorCommand', () => {
   it('healthy --json: exits 0 and stdout is nothing but the parseable JSON report', async () => {
-    mock = await startMockOllama({ models: ['gemma3:12b'] });
+    mock = await startMockOllama({ models: ['gemma4:12b'] });
     const io = fakeIO();
 
     const exitCode = await runDoctorCommand(['--json', '--host', mock.url], io);
@@ -122,7 +122,7 @@ describe('runDoctorCommand', () => {
     const parsed = JSON.parse(stdout) as { ok: boolean; host: string; model: string; checks: unknown[] };
     expect(parsed.ok).toBe(true);
     expect(parsed.host).toBe(mock.url);
-    expect(parsed.model).toBe('gemma3:12b');
+    expect(parsed.model).toBe('gemma4:12b');
     expect(Array.isArray(parsed.checks)).toBe(true);
   });
 
@@ -149,7 +149,7 @@ describe('runDoctorCommand', () => {
 
     expect(exitCode).toBe(EXIT.BACKEND);
     const stdout = io.stdoutLines.join('');
-    expect(stdout).toContain('ollama pull gemma3:12b');
+    expect(stdout).toContain('ollama pull gemma4:12b');
   });
 
   it('-h/--help prints usage to stdout and exits 0', async () => {

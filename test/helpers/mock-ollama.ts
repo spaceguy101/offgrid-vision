@@ -54,7 +54,7 @@ function perCall<T>(opt: T | T[] | undefined, index: number, fallback: T): T {
 }
 
 export async function startMockOllama(opts: MockOllamaOptions = {}): Promise<MockOllama> {
-  const models = opts.models ?? ['gemma3:12b'];
+  const models = opts.models ?? ['gemma4:12b'];
   const chatReplies = opts.chatReplies ?? ['{"description":"a test image","objects":[],"text":"","tags":["test"]}'];
   const requests: Array<{ path: string; body: unknown }> = [];
   let chatCount = 0;

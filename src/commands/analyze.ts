@@ -21,7 +21,7 @@ Options:
   --out <file>           Write { results, summary } JSON to a file
   --mode <preset>        general | ocr | alt-text | ui           (default general)
   --prompt <text>        Extra focus instruction for the model
-  --model <name>         Model to use        (env OFFGRID_MODEL, default gemma3:12b)
+  --model <name>         Model to use        (env OFFGRID_MODEL, default gemma4:12b)
   --host <url>           Ollama host         (env OLLAMA_HOST, default http://localhost:11434)
   --timeout <ms>         Per-file timeout    (env OFFGRID_TIMEOUT, default 120000)
   --concurrency <n>      Files in flight at once, 1-${MAX_CONCURRENCY}          (default 1)

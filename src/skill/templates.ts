@@ -105,7 +105,7 @@ readable, and say that the output was unstructured.
 
 | Flag | Effect |
 |---|---|
-| \`--model <name>\` | Override the model, e.g. \`gemma3:4b\` on a low-memory machine |
+| \`--model <name>\` | Override the model, e.g. \`gemma4:4b\` on a low-memory machine |
 | \`--timeout <ms>\` | Per-file deadline, default 120000 |
 | \`--concurrency <n>\` | Up to 4 files in flight; helps on large batches |
 | \`--no-recursive\` | Do not descend into subdirectories |
@@ -134,7 +134,7 @@ multiple paths yield an array of them, in sorted path order.
 \`\`\`json
 {
   "file": "/home/user/screenshots/error.png",
-  "model": "gemma3:12b",
+  "model": "gemma4:12b",
   "duration_ms": 8421,
   "analysis": {
     "description": "A desktop application showing a modal error dialog.",
