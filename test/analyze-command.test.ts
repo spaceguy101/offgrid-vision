@@ -69,11 +69,15 @@ describe('runAnalyzeCommand', () => {
   it('emits a JSON array for multiple files', async () => {
     mock = await startMockOllama();
     const cap = makeIO();
+    // Walking the directory discovers the three supported images (a.png, b.png,
+    // sub/c.png); notes.txt is filtered out because directory walks skip
+    // unsupported extensions (see discoverFiles). An explicitly-named unsupported
+    // file is covered separately below.
     await runAnalyzeCommand([root, '--json', '--host', mock.url], cap.io);
 
     const payload = JSON.parse(cap.out()) as unknown[];
     expect(Array.isArray(payload)).toBe(true);
-    expect(payload).toHaveLength(4);
+    expect(payload).toHaveLength(3);
   });
 
   it('keeps stdout free of progress output in json mode', async () => {
@@ -97,7 +101,21 @@ describe('runAnalyzeCommand', () => {
   it('continues past a failing file and exits 1', async () => {
     mock = await startMockOllama();
     const cap = makeIO();
-    const code = await runAnalyzeCommand([root, '--json', '--host', mock.url], cap.io);
+    // notes.txt is named explicitly so it reaches the analyzer (explicit files
+    // bypass the directory-walk extension filter) and fails with UNSUPPORTED_FORMAT,
+    // while the three real images succeed.
+    const code = await runAnalyzeCommand(
+      [
+        path.join(root, 'a.png'),
+        path.join(root, 'b.png'),
+        path.join(root, 'sub', 'c.png'),
+        path.join(root, 'notes.txt'),
+        '--json',
+        '--host',
+        mock.url,
+      ],
+      cap.io,
+    );
 
     const payload = JSON.parse(cap.out()) as Array<{ file: string; error: { code: string } | null }>;
     expect(code).toBe(1);
