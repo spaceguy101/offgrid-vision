@@ -4360,6 +4360,8 @@ The shebang must be the first line of the file — `tsc` preserves it, and npm s
 
 ```typescript
 #!/usr/bin/env node
+import { realpathSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
 import { EXIT } from './errors.js';
 import { getVersion } from './version.js';
 import { runAnalyzeCommand } from './commands/analyze.js';
@@ -4445,12 +4447,15 @@ async function main(): Promise<void> {
 }
 
 // Vitest imports this module for `run`; only the real binary should execute main().
-if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
+// npm installs the bin as a symlink; Node resolves import.meta.url to the
+// realpath while process.argv[1] stays the symlink path, so compare realpaths.
+const entryPath = process.argv[1];
+if (entryPath && import.meta.url === pathToFileURL(realpathSync(entryPath)).href) {
   await main();
 }
 ```
 
-Note the entry guard: comparing `import.meta.url` against `process.argv[1]` keeps `main()` from firing during tests. On Windows the naive `file://` prefix is wrong for drive-letter paths — if the built binary misbehaves there, replace the guard with `pathToFileURL(process.argv[1]).href` imported from `node:url`.
+Note the entry guard: it compares `import.meta.url` against the **realpath** of `process.argv[1]`. This is load-bearing — npm installs the `bin` as a symlink, and Node resolves `import.meta.url` to the symlink's realpath while `process.argv[1]` stays the symlink path. A naive comparison against the raw `process.argv[1]` (or a hand-built `file://` URL) never matches under `npx`/global-install, so `main()` would silently never run. `realpathSync` + `pathToFileURL` also handles Windows drive-letter paths correctly.
 
 - [ ] **Step 4: Run the tests to verify they pass**
 
