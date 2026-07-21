@@ -88,6 +88,14 @@ describe('createOllamaBackend', () => {
     ).rejects.toBeInstanceOf(BackendUnavailableError);
   });
 
+  it('throws TimeoutError (not BackendUnavailableError) when headers flush but the body stalls', async () => {
+    mock = await startMockOllama({ bodyDelayMs: 300 });
+    const backend = createOllamaBackend(mock.url);
+    await expect(
+      backend.chat([{ role: 'user', content: 'x' }], { model: 'gemma3:12b', timeoutMs: 50 }),
+    ).rejects.toBeInstanceOf(TimeoutError);
+  });
+
   it('throws BackendUnavailableError when the envelope is not JSON', async () => {
     mock = await startMockOllama({ malformedEnvelope: true });
     const backend = createOllamaBackend(mock.url);

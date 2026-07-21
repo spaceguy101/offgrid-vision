@@ -28,6 +28,11 @@ interface ChatResponse {
   message?: { content?: unknown };
 }
 
+/** AbortSignal.timeout() rejects with a DOMException named 'TimeoutError', not our class. */
+function isAbortError(cause: unknown): boolean {
+  return cause instanceof Error && (cause.name === 'TimeoutError' || cause.name === 'AbortError');
+}
+
 export function createOllamaBackend(host: string): Backend {
   const base = host.replace(/\/+$/, '');
 
@@ -43,7 +48,7 @@ export function createOllamaBackend(host: string): Backend {
         signal: AbortSignal.timeout(timeoutMs),
       });
     } catch (cause) {
-      if (cause instanceof Error && (cause.name === 'TimeoutError' || cause.name === 'AbortError')) {
+      if (isAbortError(cause)) {
         throw new TimeoutError(`Request to ${base}${path} exceeded ${timeoutMs} ms`);
       }
       throw new BackendUnavailableError(
@@ -61,10 +66,17 @@ export function createOllamaBackend(host: string): Backend {
     return response;
   }
 
-  async function readJson<T>(response: Response, path: string): Promise<T> {
+  async function readJson<T>(response: Response, path: string, timeoutMs: number): Promise<T> {
     try {
       return (await response.json()) as T;
-    } catch {
+    } catch (cause) {
+      // Ollama can flush response headers before the body is ready, so a slow
+      // or large body can stall past the deadline after fetch() has already
+      // resolved. That must still surface as TimeoutError, not a generic
+      // "non-JSON response" — the caller needs to know it was slow, not broken.
+      if (isAbortError(cause)) {
+        throw new TimeoutError(`Request to ${base}${path} exceeded ${timeoutMs} ms`);
+      }
       throw new BackendUnavailableError(
         `Ollama returned a non-JSON response for ${path}`,
         remediationFor(base),
@@ -82,7 +94,7 @@ export function createOllamaBackend(host: string): Backend {
 
     async listModels(): Promise<string[]> {
       const response = await request('/api/tags', { method: 'GET' }, PROBE_TIMEOUT_MS);
-      const payload = await readJson<TagsResponse>(response, '/api/tags');
+      const payload = await readJson<TagsResponse>(response, '/api/tags', PROBE_TIMEOUT_MS);
       return (payload.models ?? [])
         .map((entry) => entry.name)
         .filter((name): name is string => typeof name === 'string');
@@ -106,7 +118,7 @@ export function createOllamaBackend(host: string): Backend {
         },
         opts.timeoutMs,
       );
-      const payload = await readJson<ChatResponse>(response, '/api/chat');
+      const payload = await readJson<ChatResponse>(response, '/api/chat', opts.timeoutMs);
       const content = payload.message?.content;
       return typeof content === 'string' ? content : '';
     },

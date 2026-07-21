@@ -13,6 +13,13 @@ export interface MockOllamaOptions {
   chatStatus?: number;
   /** Return malformed HTTP-level JSON from /api/chat. */
   malformedEnvelope?: boolean;
+  /**
+   * Milliseconds to stall after writing the response head but before writing
+   * the body, to exercise a stall mid-body-read (headers flush immediately,
+   * body arrives late) as distinct from chatDelayMs (nothing flushes until
+   * the whole response is ready).
+   */
+  bodyDelayMs?: number;
 }
 
 export interface MockOllama {
@@ -50,9 +57,7 @@ export async function startMockOllama(opts: MockOllamaOptions = {}): Promise<Moc
       if (req.url === '/api/chat') {
         const reply = chatReplies[Math.min(chatCount, chatReplies.length - 1)] ?? '';
         chatCount += 1;
-        const send = (): void => {
-          const status = opts.chatStatus ?? 200;
-          res.writeHead(status, { 'content-type': 'application/json' });
+        const writeBody = (): void => {
           if (opts.malformedEnvelope) {
             res.end('this is not json at all');
             return;
@@ -62,6 +67,18 @@ export async function startMockOllama(opts: MockOllamaOptions = {}): Promise<Moc
             message: { role: 'assistant', content: reply },
             done: true,
           }));
+        };
+        const send = (): void => {
+          const status = opts.chatStatus ?? 200;
+          res.writeHead(status, { 'content-type': 'application/json' });
+          if (opts.bodyDelayMs) {
+            // Force headers onto the wire now, before stalling the body —
+            // writeHead() alone buffers until the first write()/end().
+            res.flushHeaders();
+            setTimeout(writeBody, opts.bodyDelayMs).unref();
+          } else {
+            writeBody();
+          }
         };
         if (opts.chatDelayMs) setTimeout(send, opts.chatDelayMs).unref();
         else send();
