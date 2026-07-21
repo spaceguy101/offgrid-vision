@@ -4109,7 +4109,7 @@ import { parseArgs } from 'node:util';
 import { homedir } from 'node:os';
 import { EXIT, UsageError } from '../errors.js';
 import { getVersion } from '../version.js';
-import { HARNESSES, SCOPES, resolveTarget, type SkillTarget } from '../skill/paths.js';
+import { resolveTarget, type SkillTarget } from '../skill/paths.js';
 import { installSkill, uninstallSkill } from '../skill/install.js';
 import type { CommandIO } from './doctor.js';
 
