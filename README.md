@@ -7,6 +7,8 @@ running on your own machine and returns compact structured JSON. It is built to 
 called by agent harnesses — and it can install an Agent Skill so a harness knows to
 reach for it automatically.
 
+![offgrid-vision analyzing an image from the terminal](demo/offgrid-vision.gif)
+
 ## Why local
 
 | | Cloud multimodal LLM | offgrid-vision |
