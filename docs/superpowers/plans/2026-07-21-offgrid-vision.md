@@ -2992,11 +2992,12 @@ function parseAnalyzeArgs(argv: string[]): AnalyzeArgs {
         host: { type: 'string' },
         timeout: { type: 'string' },
         concurrency: { type: 'string', default: '1' },
-        recursive: { type: 'boolean', default: true },
+        // Explicit negation rather than parseArgs' allowNegative, which requires
+        // Node 22.4+; this form works identically on every supported Node (>=20).
+        'no-recursive': { type: 'boolean', default: false },
         help: { type: 'boolean', short: 'h', default: false },
       },
       allowPositionals: true,
-      allowNegative: true,
     });
   } catch (cause) {
     throw new UsageError(cause instanceof Error ? cause.message : String(cause));
@@ -3036,7 +3037,7 @@ function parseAnalyzeArgs(argv: string[]): AnalyzeArgs {
     host: values.host,
     timeout,
     concurrency,
-    recursive: values.recursive ?? true,
+    recursive: !values['no-recursive'],
   };
 }
 
@@ -3168,9 +3169,9 @@ export async function runAnalyzeCommand(argv: string[], io: CommandIO): Promise<
 - [ ] **Step 4: Run the tests to verify they pass**
 
 Run: `npx vitest run test/analyze-command.test.ts`
-Expected: PASS — 17 tests passing.
+Expected: PASS — 18 tests passing.
 
-If `allowNegative` is rejected by the installed Node version, `--no-recursive` will not toggle the `recursive` boolean. `allowNegative` landed in Node 22.4; on Node 20 replace the option with an explicit `'no-recursive': { type: 'boolean', default: false }` entry, drop `allowNegative`, and compute `recursive: !values['no-recursive']`. Verify with `node -e "console.log(process.version)"` before choosing.
+`--no-recursive` is parsed as an explicit `'no-recursive'` boolean option (with `recursive: !values['no-recursive']`) rather than via parseArgs' `allowNegative`, which requires Node 22.4+; the explicit form works identically on every supported Node (>=20), so no version gate is needed.
 
 - [ ] **Step 5: Run the full suite**
 
@@ -4781,7 +4782,8 @@ defined in Task 8 and imported by Tasks 10, 13, and 14. `SkillTarget.dir` is the
 skill directory itself in both Task 11 and Task 12, which is what makes the
 uninstall basename guard correct.
 
-**Known environment risk.** Task 10 Step 4 flags `parseArgs`'s `allowNegative`,
-which requires Node 22.4+; this machine runs Node 24, but the fallback is
-documented for anyone building on Node 20.
+**Node compatibility.** Task 10 parses `--no-recursive` as an explicit
+`'no-recursive'` boolean rather than via `parseArgs`' `allowNegative` (which
+requires Node 22.4+), so the command honors the package's declared `>=20`
+engine floor with no version branch.
 
