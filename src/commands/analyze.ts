@@ -57,11 +57,10 @@ function parseAnalyzeArgs(argv: string[]): AnalyzeArgs {
         host: { type: 'string' },
         timeout: { type: 'string' },
         concurrency: { type: 'string', default: '1' },
-        recursive: { type: 'boolean', default: true },
+        'no-recursive': { type: 'boolean', default: false },
         help: { type: 'boolean', short: 'h', default: false },
       },
       allowPositionals: true,
-      allowNegative: true,
     });
   } catch (cause) {
     throw new UsageError(cause instanceof Error ? cause.message : String(cause));
@@ -101,7 +100,7 @@ function parseAnalyzeArgs(argv: string[]): AnalyzeArgs {
     host: values.host,
     timeout,
     concurrency,
-    recursive: values.recursive ?? true,
+    recursive: !values['no-recursive'],
   };
 }
 
