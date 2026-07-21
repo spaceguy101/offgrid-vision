@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import { realpathSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
 import { EXIT } from './errors.js';
 import { getVersion } from './version.js';
 import { runAnalyzeCommand } from './commands/analyze.js';
@@ -84,6 +86,9 @@ async function main(): Promise<void> {
 }
 
 // Vitest imports this module for `run`; only the real binary should execute main().
-if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
+// npm installs the bin as a symlink; Node resolves import.meta.url to the
+// realpath while process.argv[1] stays the symlink path, so compare realpaths.
+const entryPath = process.argv[1];
+if (entryPath && import.meta.url === pathToFileURL(realpathSync(entryPath)).href) {
   await main();
 }

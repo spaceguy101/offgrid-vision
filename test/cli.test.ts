@@ -63,4 +63,15 @@ describe('run', () => {
     expect(code).toBe(2);
     expect(cap.err()).toContain('--concurrency');
   });
+
+  it('maps an unexpected synchronous throw from a command to exit code 1', async () => {
+    // runDoctorCommand's parseArgs call is not wrapped in try/catch (unlike
+    // analyze/install-skill), so an unrecognized flag throws synchronously out
+    // of the handler and lands in run()'s top-level catch, unconverted.
+    const cap = makeIO();
+    const code = await run(['doctor', '--bogus-flag'], cap.io);
+    expect(code).toBe(1);
+    expect(cap.err()).toContain('offgrid-vision:');
+    expect(cap.err()).toContain('--bogus-flag');
+  });
 });
