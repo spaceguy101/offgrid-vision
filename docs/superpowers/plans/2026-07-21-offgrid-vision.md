@@ -4794,3 +4794,39 @@ uninstall basename guard correct.
 requires Node 22.4+), so the command honors the package's declared `>=20`
 engine floor with no version branch.
 
+
+---
+
+## Post-implementation amendments (final whole-branch review)
+
+The build shipped all 15 tasks; a final whole-branch review (no Critical issues)
+produced these behavior changes, applied after the per-task code blocks above.
+The source tree under `src/` is authoritative where it differs from a snippet
+here:
+
+- **Config (`src/config.ts`):** empty or whitespace-only `OLLAMA_HOST` /
+  `OFFGRID_MODEL` env vars fall back to the defaults instead of being taken as
+  literal values (a `nonEmpty` helper coalesces them to `undefined` before the
+  `?? default`). Precedence flags > env > defaults is unchanged.
+- **Doctor (`src/commands/doctor.ts`):** `runDoctorCommand` now wraps its
+  `parseArgs` in try/catch and returns `EXIT.USAGE` (2) on a bad flag, matching
+  `analyze`/`install-skill` and its own documented exit codes (it previously
+  threw to the CLI's top-level catch and exited 1).
+- **Analyze preflight (`src/commands/analyze.ts`):** on a preflight failure in
+  `--json` mode the command now emits a single standard `AnalysisResult`
+  envelope (`analysis: null`, `error.code: 'BACKEND_UNAVAILABLE'`, remediation
+  folded into `error.message`) rather than the previously-shown
+  `{ results: [], error }` shape — so agents that check per-element `error`
+  aren't defeated. Exit code stays 3; remediation still also goes to stderr.
+- **Analyze discovery (`src/commands/analyze.ts`):** discovery iterates the
+  input paths and calls `discoverFiles([singlePath], …)` per path, so one
+  missing path becomes its own `IO_ERROR` result envelope while the valid paths
+  are still analyzed — honoring the "continue past failures" invariant. The
+  earlier single `discoverFiles(allPaths)` call collapsed the whole batch into
+  one `IO_ERROR` on the first bad path.
+- **Skill schema doc (`src/skill/templates.ts`):** the `references/schema.md`
+  JSON example's `file` value is absolute, matching its own "Absolute path"
+  field description.
+- **Uninstall (`src/commands/install-skill.ts`):** `uninstall-skill` prints the
+  same "Detected harness …" line as `install-skill` when the target was
+  auto-detected, so the destructive command names the directory it will remove.
