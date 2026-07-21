@@ -1,4 +1,4 @@
-// One-shot generator for demo/sample.png — a valid 480x300 RGB PNG.
+// One-shot generator for demo/screenshot.png — a valid 480x300 RGB PNG.
 // The demo records a terminal only, so the pixels never appear on screen;
 // this exists solely to give `analyze` a real, sniffable image file.
 // Run once with: node demo/make-sample.mjs
@@ -64,5 +64,5 @@ const png = Buffer.concat([
   chunk('IEND', Buffer.alloc(0)),
 ]);
 
-writeFileSync(new URL('./sample.png', import.meta.url), png);
-console.log(`wrote sample.png (${png.length} bytes)`);
+writeFileSync(new URL('./screenshot.png', import.meta.url), png);
+console.log(`wrote screenshot.png (${png.length} bytes)`);
