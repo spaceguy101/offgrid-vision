@@ -25,6 +25,7 @@ Options:
   --model <name>         Model to use        (env OFFGRID_MODEL, default qwen3.5:4b)
   --host <url>           Ollama host         (env OLLAMA_HOST, default http://localhost:11434)
   --timeout <ms>         Per-file timeout    (env OFFGRID_TIMEOUT, default 120000)
+  --num-ctx <n>          Context window      (env OFFGRID_NUM_CTX, default 16384)
   --concurrency <n>      Files in flight at once, 1-${MAX_CONCURRENCY}          (default 1)
   --no-recursive         Do not descend into subdirectories
   -h, --help             Show this help
@@ -40,6 +41,7 @@ interface AnalyzeArgs {
   model?: string;
   host?: string;
   timeout?: number;
+  numCtx?: number;
   concurrency: number;
   recursive: boolean;
 }
@@ -57,6 +59,7 @@ function parseAnalyzeArgs(argv: string[]): AnalyzeArgs {
         model: { type: 'string' },
         host: { type: 'string' },
         timeout: { type: 'string' },
+        'num-ctx': { type: 'string' },
         concurrency: { type: 'string', default: '1' },
         'no-recursive': { type: 'boolean', default: false },
         help: { type: 'boolean', short: 'h', default: false },
@@ -91,6 +94,14 @@ function parseAnalyzeArgs(argv: string[]): AnalyzeArgs {
     }
   }
 
+  let numCtx: number | undefined;
+  if (values['num-ctx'] !== undefined) {
+    numCtx = Number(values['num-ctx']);
+    if (!Number.isFinite(numCtx) || numCtx <= 0) {
+      throw new UsageError('--num-ctx must be a positive number of tokens');
+    }
+  }
+
   return {
     paths: positionals,
     json: values.json ?? false,
@@ -100,6 +111,7 @@ function parseAnalyzeArgs(argv: string[]): AnalyzeArgs {
     model: values.model,
     host: values.host,
     timeout,
+    numCtx,
     concurrency,
     recursive: !values['no-recursive'],
   };
@@ -144,7 +156,7 @@ export async function runAnalyzeCommand(argv: string[], io: CommandIO): Promise<
   }
 
   const config = resolveConfig(
-    { model: args.model, host: args.host, timeout: args.timeout },
+    { model: args.model, host: args.host, timeout: args.timeout, numCtx: args.numCtx },
     io.env,
   );
   if (!isLocalHost(config.host)) {
@@ -213,6 +225,7 @@ export async function runAnalyzeCommand(argv: string[], io: CommandIO): Promise<
       backend,
       model: config.model,
       timeoutMs: config.timeoutMs,
+      numCtx: config.numCtx,
       mode: args.mode,
       customPrompt: args.prompt,
     });

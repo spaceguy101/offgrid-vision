@@ -81,6 +81,7 @@ Analyze one or more images. Paths may be files or directories.
 | `--model <name>` | `qwen3.5:4b` | Model to use |
 | `--host <url>` | `http://localhost:11434` | Ollama host |
 | `--timeout <ms>` | `120000` | Per-file deadline |
+| `--num-ctx <n>` | `16384` | Context window. Raise it for very large images |
 | `--concurrency <n>` | `1` | Files in flight at once, 1–4 |
 | `--no-recursive` | off | Do not descend into subdirectories |
 
@@ -185,6 +186,7 @@ Flags beat environment variables, which beat defaults.
 | `OFFGRID_MODEL` | `qwen3.5:4b` |
 | `OLLAMA_HOST` | `http://localhost:11434` |
 | `OFFGRID_TIMEOUT` | `120000` |
+| `OFFGRID_NUM_CTX` | `16384` |
 
 ## Privacy
 

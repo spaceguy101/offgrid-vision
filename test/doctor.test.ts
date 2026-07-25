@@ -13,7 +13,7 @@ afterEach(async () => {
   mock = undefined;
 });
 
-const config = (host: string, model = 'gemma3:12b') => ({ model, host, timeoutMs: 120000 });
+const config = (host: string, model = 'gemma3:12b') => ({ model, host, timeoutMs: 120000, numCtx: 16384 });
 
 /** Machine facts for the checks. 16 GB unless a test is about sizing. */
 const sys = (totalMemBytes = 16 * GIB, nodeVersion = 'v20.11.0') => ({ nodeVersion, totalMemBytes });

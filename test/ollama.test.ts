@@ -47,7 +47,7 @@ describe('createOllamaBackend', () => {
     const backend = createOllamaBackend(mock.url);
     const reply = await backend.chat(
       [{ role: 'user', content: 'describe this', images: ['aGVsbG8='] }],
-      { model: 'gemma3:12b', timeoutMs: 5000 },
+      { model: 'gemma3:12b', timeoutMs: 5000, numCtx: 16384 },
     );
     expect(reply).toBe('hello from the model');
   });
@@ -57,7 +57,7 @@ describe('createOllamaBackend', () => {
     const backend = createOllamaBackend(mock.url);
     await backend.chat(
       [{ role: 'user', content: 'describe this', images: ['aGVsbG8='] }],
-      { model: 'gemma3:12b', timeoutMs: 5000 },
+      { model: 'gemma3:12b', timeoutMs: 5000, numCtx: 16384 },
     );
     const request = mock.requests.find((r) => r.path === '/api/chat');
     const body = request?.body as Record<string, unknown>;
@@ -69,6 +69,35 @@ describe('createOllamaBackend', () => {
     expect(messages[0]?.images).toEqual(['aGVsbG8=']);
   });
 
+  it('sets num_ctx, because Ollama caps unset requests at 4096 regardless of the model', async () => {
+    // A 2940x1912 screenshot is ~4200 prompt tokens on its own. Without an
+    // explicit num_ctx the server used its 4096 default and either returned
+    // HTTP 400 exceed_context_size_error or, worse, spent the whole window on
+    // the model's thinking block and returned empty content.
+    mock = await startMockOllama();
+    const backend = createOllamaBackend(mock.url);
+    await backend.chat(
+      [{ role: 'user', content: 'describe this', images: ['aGVsbG8='] }],
+      { model: 'qwen3.5:4b', timeoutMs: 5000, numCtx: 16384 },
+    );
+    const body = mock.requests.find((r) => r.path === '/api/chat')?.body as Record<string, unknown>;
+    expect((body.options as Record<string, unknown>).num_ctx).toBe(16384);
+  });
+
+  it('disables thinking, which otherwise expands to fill num_ctx and blows the timeout', async () => {
+    // Measured on a 2940x1912 screenshot: thinking on took 119s at num_ctx
+    // 16384, thinking off took 13.7s for the same answer. Non-thinking models
+    // ignore the field, so it is safe to send unconditionally.
+    mock = await startMockOllama();
+    const backend = createOllamaBackend(mock.url);
+    await backend.chat(
+      [{ role: 'user', content: 'describe this', images: ['aGVsbG8='] }],
+      { model: 'qwen3.5:4b', timeoutMs: 5000, numCtx: 16384 },
+    );
+    const body = mock.requests.find((r) => r.path === '/api/chat')?.body as Record<string, unknown>;
+    expect(body.think).toBe(false);
+  });
+
   it('carries multi-turn history so the repair prompt has context', async () => {
     mock = await startMockOllama();
     const backend = createOllamaBackend(mock.url);
@@ -78,7 +107,7 @@ describe('createOllamaBackend', () => {
         { role: 'assistant', content: 'garbage' },
         { role: 'user', content: 'try again' },
       ],
-      { model: 'gemma3:12b', timeoutMs: 5000 },
+      { model: 'gemma3:12b', timeoutMs: 5000, numCtx: 16384 },
     );
     const body = mock.requests.find((r) => r.path === '/api/chat')?.body as Record<string, unknown>;
     expect((body.messages as unknown[]).length).toBe(3);
@@ -88,7 +117,7 @@ describe('createOllamaBackend', () => {
     mock = await startMockOllama({ chatDelayMs: 300 });
     const backend = createOllamaBackend(mock.url);
     await expect(
-      backend.chat([{ role: 'user', content: 'x' }], { model: 'gemma3:12b', timeoutMs: 50 }),
+      backend.chat([{ role: 'user', content: 'x' }], { model: 'gemma3:12b', timeoutMs: 50, numCtx: 16384 }),
     ).rejects.toBeInstanceOf(TimeoutError);
   });
 
@@ -96,7 +125,7 @@ describe('createOllamaBackend', () => {
     mock = await startMockOllama({ chatStatus: 500 });
     const backend = createOllamaBackend(mock.url);
     await expect(
-      backend.chat([{ role: 'user', content: 'x' }], { model: 'gemma3:12b', timeoutMs: 5000 }),
+      backend.chat([{ role: 'user', content: 'x' }], { model: 'gemma3:12b', timeoutMs: 5000, numCtx: 16384 }),
     ).rejects.toBeInstanceOf(BackendUnavailableError);
   });
 
@@ -104,7 +133,7 @@ describe('createOllamaBackend', () => {
     mock = await startMockOllama({ bodyDelayMs: 300 });
     const backend = createOllamaBackend(mock.url);
     await expect(
-      backend.chat([{ role: 'user', content: 'x' }], { model: 'gemma3:12b', timeoutMs: 50 }),
+      backend.chat([{ role: 'user', content: 'x' }], { model: 'gemma3:12b', timeoutMs: 50, numCtx: 16384 }),
     ).rejects.toBeInstanceOf(TimeoutError);
   });
 
@@ -112,7 +141,7 @@ describe('createOllamaBackend', () => {
     mock = await startMockOllama({ malformedEnvelope: true });
     const backend = createOllamaBackend(mock.url);
     await expect(
-      backend.chat([{ role: 'user', content: 'x' }], { model: 'gemma3:12b', timeoutMs: 5000 }),
+      backend.chat([{ role: 'user', content: 'x' }], { model: 'gemma3:12b', timeoutMs: 5000, numCtx: 16384 }),
     ).rejects.toBeInstanceOf(BackendUnavailableError);
   });
 });

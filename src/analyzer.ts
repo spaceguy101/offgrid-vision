@@ -14,6 +14,7 @@ export interface AnalyzeFileOptions {
   backend: Backend;
   model: string;
   timeoutMs: number;
+  numCtx: number;
   mode: Mode;
   customPrompt?: string;
 }
@@ -102,7 +103,7 @@ export async function analyzeFile(
       images: [buffer.toString('base64')],
     },
   ];
-  const chatOptions = { model: opts.model, timeoutMs: opts.timeoutMs };
+  const chatOptions = { model: opts.model, timeoutMs: opts.timeoutMs, numCtx: opts.numCtx };
 
   let reply: string;
   try {

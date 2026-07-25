@@ -107,6 +107,7 @@ readable, and say that the output was unstructured.
 |---|---|
 | \`--model <name>\` | Override the model, e.g. \`qwen3.5:2b\` on a low-memory machine; \`offgrid-vision doctor\` names the size that fits |
 | \`--timeout <ms>\` | Per-file deadline, default 120000 |
+| \`--num-ctx <n>\` | Context window, default 16384; raise it if a very large image fails |
 | \`--concurrency <n>\` | Up to 4 files in flight; helps on large batches |
 | \`--no-recursive\` | Do not descend into subdirectories |
 

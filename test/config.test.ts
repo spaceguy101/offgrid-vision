@@ -8,7 +8,22 @@ describe('resolveConfig', () => {
       model: 'qwen3.5:4b',
       host: 'http://localhost:11434',
       timeoutMs: 120000,
+      numCtx: 16384,
     });
+  });
+
+  it('resolves numCtx from flag, then env, then default', () => {
+    expect(resolveConfig({ numCtx: 32768 }, { OFFGRID_NUM_CTX: '8192' }).numCtx).toBe(32768);
+    expect(resolveConfig({}, { OFFGRID_NUM_CTX: '8192' }).numCtx).toBe(8192);
+    expect(resolveConfig({}, {}).numCtx).toBe(16384);
+  });
+
+  it('ignores a non-positive or unparseable OFFGRID_NUM_CTX', () => {
+    // Falling back beats sending garbage: a zero would reinstate Ollama's
+    // 4096 default and bring the context-overflow bug straight back.
+    for (const bad of ['0', '-1', 'lots', '']) {
+      expect(resolveConfig({}, { OFFGRID_NUM_CTX: bad }).numCtx).toBe(16384);
+    }
   });
 
   it('defaults to a model the sizing table knows about', () => {
@@ -27,6 +42,7 @@ describe('resolveConfig', () => {
       model: 'gemma3:4b',
       host: 'http://10.0.0.5:11434',
       timeoutMs: 30000,
+      numCtx: 16384,
     });
   });
 
@@ -39,6 +55,7 @@ describe('resolveConfig', () => {
       model: 'llava:13b',
       host: 'http://192.168.1.9:1234',
       timeoutMs: 5000,
+      numCtx: 16384,
     });
   });
 

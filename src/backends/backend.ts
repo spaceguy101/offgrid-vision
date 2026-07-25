@@ -8,6 +8,12 @@ export interface ChatMessage {
 export interface ChatOptions {
   model: string;
   timeoutMs: number;
+  /**
+   * Context window to request. Required, not optional: Ollama silently falls
+   * back to a 4096-token default when the client omits it, which is far below
+   * what these vision models support and smaller than a single screenshot.
+   */
+  numCtx: number;
 }
 
 /** The per-file deadline elapsed (FR-1.9). Maps to the TIMEOUT result code. */

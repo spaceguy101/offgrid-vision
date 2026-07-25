@@ -25,6 +25,7 @@ Environment:
   OFFGRID_MODEL        Model name          (default qwen3.5:4b)
   OLLAMA_HOST          Backend host        (default http://localhost:11434)
   OFFGRID_TIMEOUT      Per-file timeout ms (default 120000)
+  OFFGRID_NUM_CTX      Context window      (default 16384)
 
 Examples:
   npx offgrid-vision doctor

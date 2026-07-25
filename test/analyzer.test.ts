@@ -33,7 +33,7 @@ function backendFor(url: string) {
   return createOllamaBackend(url);
 }
 
-const baseOpts = { model: 'gemma3:12b', timeoutMs: 5000, mode: 'general' as const };
+const baseOpts = { model: 'gemma3:12b', timeoutMs: 5000, numCtx: 16384, mode: 'general' as const };
 
 describe('analyzeFile', () => {
   it('returns a fully populated envelope on the happy path', async () => {

@@ -116,7 +116,16 @@ export function createOllamaBackend(host: string): Backend {
             // Ask Ollama to constrain decoding to JSON; the parser in schema.ts
             // still runs defensively because not every model honors this.
             format: 'json',
-            options: { temperature: 0.2 },
+            // Thinking models expand their reasoning block to fill whatever
+            // context is available — measured at 3.7k chars under num_ctx 8192
+            // and 7.2k under 16384, for identical answer quality and 5x the
+            // wall time. We want one JSON object, not deliberation, so switch
+            // it off. Models without the capability ignore the field.
+            think: false,
+            // num_ctx must be explicit. Ollama defaults to 4096 when it is
+            // absent, no matter that the model advertises far more, and one
+            // high-resolution image can exceed that on its own.
+            options: { temperature: 0.2, num_ctx: opts.numCtx },
           }),
         },
         opts.timeoutMs,

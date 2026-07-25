@@ -6,16 +6,27 @@ export const DEFAULT_MODEL = 'qwen3.5:4b';
 export const DEFAULT_HOST = 'http://localhost:11434';
 export const DEFAULT_TIMEOUT_MS = 120000;
 
+/**
+ * Ollama caps a request at 4096 tokens when the client does not ask for more.
+ * A single 3000x2000 screenshot is ~4200 tokens by itself, so that default
+ * fails outright on large images and leaves no room for the reply on mid-size
+ * ones. 16384 covers a high-resolution screenshot plus the repair round-trip
+ * while staying modest enough for the KV cache on a 16 GB machine.
+ */
+export const DEFAULT_NUM_CTX = 16384;
+
 export interface ConfigFlags {
   model?: string;
   host?: string;
   timeout?: number;
+  numCtx?: number;
 }
 
 export interface ResolvedConfig {
   model: string;
   host: string;
   timeoutMs: number;
+  numCtx: number;
 }
 
 function normalizeHost(host: string): string {
@@ -43,10 +54,16 @@ export function resolveConfig(flags: ConfigFlags, env: NodeJS.ProcessEnv): Resol
     positiveInt(env.OFFGRID_TIMEOUT) ??
     DEFAULT_TIMEOUT_MS;
 
+  const numCtx =
+    (flags.numCtx !== undefined && flags.numCtx > 0 ? Math.floor(flags.numCtx) : undefined) ??
+    positiveInt(env.OFFGRID_NUM_CTX) ??
+    DEFAULT_NUM_CTX;
+
   return {
     model: flags.model ?? nonEmpty(env.OFFGRID_MODEL) ?? DEFAULT_MODEL,
     host: normalizeHost(host),
     timeoutMs,
+    numCtx,
   };
 }
 
