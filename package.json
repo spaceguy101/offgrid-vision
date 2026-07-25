@@ -1,9 +1,10 @@
 {
   "name": "offgrid-vision",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Analyze images locally with Ollama instead of spending cloud multimodal tokens.",
   "type": "module",
   "license": "MIT",
+  "author": "Shreyas Ponkshe <shreyasponkshe12345@gmail.com>",
   "bin": {
     "offgrid-vision": "dist/cli.js"
   },
