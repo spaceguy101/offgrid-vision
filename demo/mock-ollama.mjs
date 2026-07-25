@@ -6,7 +6,7 @@
 import { createServer } from 'node:http';
 
 const PORT = 11499;
-const MODEL = 'gemma4:12b';
+const MODEL = 'qwen3.5:4b';
 
 // One canned, schema-valid analysis. Rich enough that the rendered output
 // looks real; valid enough that the analyzer does not issue a repair call.

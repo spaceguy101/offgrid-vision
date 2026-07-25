@@ -1,7 +1,9 @@
 import { parseArgs } from 'node:util';
+import { totalmem } from 'node:os';
 import { BackendUnavailableError, EXIT } from '../errors.js';
 import { isLocalHost, resolveConfig, type ResolvedConfig } from '../config.js';
 import { createOllamaBackend } from '../backends/ollama.js';
+import { memoryAdvice, normalizeTag, sizingLines } from '../models.js';
 import type { Backend } from '../backends/backend.js';
 
 /** Injection point so commands can be exercised without spawning a process. */
@@ -27,16 +29,30 @@ export interface DoctorReport {
 
 export const MIN_NODE_MAJOR = 20;
 
-function modelRemediation(model: string, host: string, available: string[]): string {
+/** Machine facts, injected so checks can be exercised for any hardware. */
+export interface SystemInfo {
+  nodeVersion: string;
+  /** Total physical RAM in bytes, as os.totalmem() reports it. */
+  totalMemBytes: number;
+}
+
+/** The only place in this file that reads real machine state. */
+export function readSystemInfo(): SystemInfo {
+  return { nodeVersion: process.version, totalMemBytes: totalmem() };
+}
+
+function modelRemediation(
+  model: string,
+  host: string,
+  available: string[],
+  totalMemBytes: number,
+): string {
   return [
     `The model "${model}" is not present on the Ollama server at ${host}.`,
     '',
     'Pull it:',
     `  ollama pull ${model}`,
-    '',
-    'On a machine with less than 16 GB of RAM, prefer the smaller model:',
-    '  ollama pull gemma4:4b',
-    `  offgrid-vision analyze <file> --model gemma4:4b   (or set OFFGRID_MODEL=gemma4:4b)`,
+    ...sizingLines(totalMemBytes, model),
     '',
     available.length
       ? `Models currently installed: ${available.join(', ')}`
@@ -44,20 +60,19 @@ function modelRemediation(model: string, host: string, available: string[]): str
   ].join('\n');
 }
 
-/** Ollama reports untagged models as "name:latest"; treat a bare name as that. */
 function modelMatches(requested: string, installed: string): boolean {
-  const normalize = (name: string): string => (name.includes(':') ? name : `${name}:latest`);
-  return normalize(requested) === normalize(installed);
+  return normalizeTag(requested) === normalizeTag(installed);
 }
 
 export async function runChecks(
   backend: Backend,
   config: ResolvedConfig,
-  nodeVersion: string,
+  system: SystemInfo,
 ): Promise<DoctorReport> {
   const checks: CheckResult[] = [];
   let remediation: string | null = null;
 
+  const { nodeVersion, totalMemBytes } = system;
   const major = Number.parseInt(nodeVersion.replace(/^v/, '').split('.')[0] ?? '0', 10);
   const nodeOk = Number.isFinite(major) && major >= MIN_NODE_MAJOR;
   checks.push({
@@ -66,6 +81,15 @@ export async function runChecks(
     detail: nodeOk
       ? `${nodeVersion} (minimum ${MIN_NODE_MAJOR})`
       : `${nodeVersion} is too old — offgrid-vision requires Node.js ${MIN_NODE_MAJOR} or newer`,
+  });
+
+  // Informational only: a small machine is not a broken machine, and a heavier
+  // model than the tier still runs (slower). Never fails, so it cannot flip the
+  // exit code that `doctor && analyze` gating depends on.
+  checks.push({
+    name: 'System memory',
+    ok: true,
+    detail: memoryAdvice(totalMemBytes, config.model),
   });
 
   let installed: string[] = [];
@@ -98,7 +122,9 @@ export async function runChecks(
         ? `${config.model} is installed`
         : `${config.model} is not installed`,
     });
-    if (!present) remediation = modelRemediation(config.model, config.host, installed);
+    if (!present) {
+      remediation = modelRemediation(config.model, config.host, installed, totalMemBytes);
+    }
   }
 
   return { ok: checks.every((check) => check.ok), checks, remediation };
@@ -108,22 +134,27 @@ export async function runChecks(
  * FR-2.4: the fast preflight `analyze` runs before touching any file. Throws the
  * same actionable error the doctor command prints.
  */
-export async function preflight(backend: Backend, config: ResolvedConfig): Promise<void> {
+export async function preflight(
+  backend: Backend,
+  config: ResolvedConfig,
+  totalMemBytes: number,
+): Promise<void> {
   const installed = await backend.listModels();
   if (!installed.some((name) => modelMatches(config.model, name))) {
     throw new BackendUnavailableError(
       `Model "${config.model}" is not available on ${config.host}`,
-      modelRemediation(config.model, config.host, installed),
+      modelRemediation(config.model, config.host, installed, totalMemBytes),
     );
   }
 }
 
 export const DOCTOR_HELP = `Usage: offgrid-vision doctor [options]
 
-Check that this machine can run local image analysis.
+Check that this machine can run local image analysis. Reports total RAM and the
+vision model sized for it.
 
 Options:
-  --model <name>   Model to check for       (env OFFGRID_MODEL, default gemma4:12b)
+  --model <name>   Model to check for       (env OFFGRID_MODEL, default qwen3.5:4b)
   --host <url>     Ollama host              (env OLLAMA_HOST, default http://localhost:11434)
   --json           Emit the report as JSON on stdout
   -h, --help       Show this help
@@ -159,7 +190,7 @@ export async function runDoctorCommand(argv: string[], io: CommandIO): Promise<n
   }
 
   const backend = createOllamaBackend(config.host);
-  const report = await runChecks(backend, config, process.version);
+  const report = await runChecks(backend, config, readSystemInfo());
 
   if (values.json) {
     io.stdout(`${JSON.stringify({ ...report, host: config.host, model: config.model }, null, 2)}\n`);

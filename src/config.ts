@@ -1,4 +1,8 @@
-export const DEFAULT_MODEL = 'gemma4:12b';
+/**
+ * Static on purpose: a config resolved on one machine must mean the same thing
+ * on another. `doctor` is what adapts advice to local RAM (see models.ts).
+ */
+export const DEFAULT_MODEL = 'qwen3.5:4b';
 export const DEFAULT_HOST = 'http://localhost:11434';
 export const DEFAULT_TIMEOUT_MS = 120000;
 

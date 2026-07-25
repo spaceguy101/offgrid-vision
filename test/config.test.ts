@@ -1,13 +1,20 @@
 import { describe, it, expect } from 'vitest';
-import { resolveConfig, isLocalHost } from '../src/config.js';
+import { resolveConfig, isLocalHost, DEFAULT_MODEL } from '../src/config.js';
+import { MODEL_TIERS } from '../src/models.js';
 
 describe('resolveConfig', () => {
   it('uses defaults when nothing is provided', () => {
     expect(resolveConfig({}, {})).toEqual({
-      model: 'gemma4:12b',
+      model: 'qwen3.5:4b',
       host: 'http://localhost:11434',
       timeoutMs: 120000,
     });
+  });
+
+  it('defaults to a model the sizing table knows about', () => {
+    // Guards against the default drifting to a tag doctor cannot reason about,
+    // or to one that does not exist at all.
+    expect(MODEL_TIERS.map((tier) => tier.model)).toContain(DEFAULT_MODEL);
   });
 
   it('prefers env vars over defaults', () => {
@@ -40,8 +47,8 @@ describe('resolveConfig', () => {
   });
 
   it('treats an empty OFFGRID_MODEL as unset and falls back to the default', () => {
-    expect(resolveConfig({}, { OFFGRID_MODEL: '' }).model).toBe('gemma4:12b');
-    expect(resolveConfig({}, { OFFGRID_MODEL: '   ' }).model).toBe('gemma4:12b');
+    expect(resolveConfig({}, { OFFGRID_MODEL: '' }).model).toBe('qwen3.5:4b');
+    expect(resolveConfig({}, { OFFGRID_MODEL: '   ' }).model).toBe('qwen3.5:4b');
   });
 
   it('treats an empty OLLAMA_HOST as unset and falls back to the default', () => {

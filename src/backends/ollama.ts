@@ -1,4 +1,5 @@
 import { BackendUnavailableError } from '../errors.js';
+import { tierTableLines } from '../models.js';
 import { TimeoutError, type Backend, type ChatMessage, type ChatOptions } from './backend.js';
 
 /** Short deadline for liveness probes — a healthy local daemon answers instantly. */
@@ -11,10 +12,12 @@ function remediationFor(host: string): string {
     'To fix this:',
     '  1. Install Ollama from https://ollama.com/download',
     '  2. Start it (the desktop app, or run `ollama serve`)',
-    '  3. Pull a vision model:  ollama pull gemma4:12b',
+    '  3. Pull a vision model sized for this machine:',
+    // This path knows a host but not the local RAM, so it prints the whole
+    // table; `doctor` narrows it to one line once the server answers.
+    ...tierTableLines('       '),
     '',
-    'On a machine with less than 16 GB of RAM, use the smaller model instead:',
-    '  ollama pull gemma4:4b   &&   offgrid-vision analyze <file> --model gemma4:4b',
+    'Then run `offgrid-vision doctor` — it detects this machine\'s RAM and names the model to use.',
     '',
     'If Ollama runs on another host or port, set OLLAMA_HOST or pass --host.',
   ].join('\n');

@@ -26,12 +26,20 @@ hundred tokens of JSON.
 
 - **Node.js 20 or newer**
 - **[Ollama](https://ollama.com/download)** installed and running
-- A vision model pulled:
+- A vision model pulled. Pick the one that matches your RAM:
+
+  | Total RAM | Model | Download |
+  |---|---|---|
+  | under 8 GB | `qwen3.5:2b` | 2.7 GB |
+  | 8–24 GB | `qwen3.5:4b` (default) | 3.4 GB |
+  | 24 GB or more | `gemma4:12b` | 7.6 GB |
 
   ```bash
-  ollama pull gemma4:12b     # default; needs roughly 16 GB of RAM
-  ollama pull gemma4:4b      # lighter alternative for smaller machines
+  ollama pull qwen3.5:4b
   ```
+
+  Not sure? Run `npx offgrid-vision doctor` — it detects your RAM and names the
+  model to use.
 
 Verify everything at once:
 
@@ -70,7 +78,7 @@ Analyze one or more images. Paths may be files or directories.
 | `--out <file>` | — | Write `{ results, summary }` JSON to a file |
 | `--mode <preset>` | `general` | `general`, `ocr`, `alt-text`, or `ui` |
 | `--prompt <text>` | — | Extra focus instruction; the schema is unchanged |
-| `--model <name>` | `gemma4:12b` | Model to use |
+| `--model <name>` | `qwen3.5:4b` | Model to use |
 | `--host <url>` | `http://localhost:11434` | Ollama host |
 | `--timeout <ms>` | `120000` | Per-file deadline |
 | `--concurrency <n>` | `1` | Files in flight at once, 1–4 |
@@ -85,9 +93,11 @@ Analyze one or more images. Paths may be files or directories.
 
 ### `doctor`
 
-Checks the Node version, Ollama reachability, and whether the model is pulled.
-Prints exact remediation on failure. Exits 0 when healthy, 3 otherwise, so
-scripts can gate on it.
+Checks the Node version, total system RAM, Ollama reachability, and whether the
+model is pulled. The memory check is advisory — it reports how much RAM this
+machine has and which model is sized for it, but never fails. Prints exact
+remediation on failure. Exits 0 when healthy, 3 otherwise, so scripts can gate
+on it.
 
 ```bash
 npx offgrid-vision doctor && npx offgrid-vision analyze shot.png --json
@@ -115,7 +125,7 @@ This schema is a public contract; changes to it are semver-major.
 ```json
 {
   "file": "/abs/path/screenshots/error.png",
-  "model": "gemma4:12b",
+  "model": "qwen3.5:4b",
   "duration_ms": 8421,
   "analysis": {
     "description": "A desktop application showing a modal error dialog.",
@@ -172,7 +182,7 @@ Flags beat environment variables, which beat defaults.
 
 | Variable | Default |
 |---|---|
-| `OFFGRID_MODEL` | `gemma4:12b` |
+| `OFFGRID_MODEL` | `qwen3.5:4b` |
 | `OLLAMA_HOST` | `http://localhost:11434` |
 | `OFFGRID_TIMEOUT` | `120000` |
 

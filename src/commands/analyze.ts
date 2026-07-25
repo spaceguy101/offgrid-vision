@@ -1,5 +1,6 @@
 import { parseArgs } from 'node:util';
 import { writeFile } from 'node:fs/promises';
+import { totalmem } from 'node:os';
 import { BackendUnavailableError, EXIT, UsageError } from '../errors.js';
 import { isLocalHost, resolveConfig } from '../config.js';
 import { createOllamaBackend } from '../backends/ollama.js';
@@ -21,7 +22,7 @@ Options:
   --out <file>           Write { results, summary } JSON to a file
   --mode <preset>        general | ocr | alt-text | ui           (default general)
   --prompt <text>        Extra focus instruction for the model
-  --model <name>         Model to use        (env OFFGRID_MODEL, default gemma4:12b)
+  --model <name>         Model to use        (env OFFGRID_MODEL, default qwen3.5:4b)
   --host <url>           Ollama host         (env OLLAMA_HOST, default http://localhost:11434)
   --timeout <ms>         Per-file timeout    (env OFFGRID_TIMEOUT, default 120000)
   --concurrency <n>      Files in flight at once, 1-${MAX_CONCURRENCY}          (default 1)
@@ -154,7 +155,7 @@ export async function runAnalyzeCommand(argv: string[], io: CommandIO): Promise<
 
   // FR-2.4: fail fast with the doctor's remediation before touching any file.
   try {
-    await preflight(backend, config);
+    await preflight(backend, config, totalmem());
   } catch (cause) {
     const message = cause instanceof Error ? cause.message : String(cause);
     const remediation = cause instanceof BackendUnavailableError ? cause.remediation : '';

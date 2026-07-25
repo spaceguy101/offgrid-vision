@@ -2,6 +2,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { createOllamaBackend } from '../src/backends/ollama.js';
 import { TimeoutError } from '../src/backends/backend.js';
 import { BackendUnavailableError } from '../src/errors.js';
+import { MODEL_TIERS } from '../src/models.js';
 import { startMockOllama, type MockOllama } from './helpers/mock-ollama.js';
 
 let mock: MockOllama | undefined;
@@ -28,6 +29,17 @@ describe('createOllamaBackend', () => {
     const error = await backend.ping().catch((e: unknown) => e);
     expect(error).toBeInstanceOf(BackendUnavailableError);
     expect((error as BackendUnavailableError).remediation).toMatch(/ollama/i);
+  });
+
+  it('offers the whole sizing table when the host is down, since it cannot know the local RAM', async () => {
+    const backend = createOllamaBackend('http://127.0.0.1:1');
+    const error = await backend.ping().catch((e: unknown) => e);
+    const remediation = (error as BackendUnavailableError).remediation;
+
+    for (const tier of MODEL_TIERS) {
+      expect(remediation).toContain(`ollama pull ${tier.model}`);
+    }
+    expect(remediation).not.toContain('gemma4:4b');
   });
 
   it('returns the assistant message content from /api/chat', async () => {
